@@ -1,5 +1,7 @@
 # LinkedIn Sentiment Analysis Tool
 
+**GitHub Repository**: [https://github.com/akshchhapolia/linkedin-sentiment-analysis](https://github.com/akshchhapolia/linkedin-sentiment-analysis)
+
 A web application that analyzes sentiment from LinkedIn posts for any company, generating comprehensive reports with industry-specific insights.
 
 ## Features
