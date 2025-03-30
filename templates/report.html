@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ company_name }} Sentiment Analysis Report</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .dashboard-header {
+            background: linear-gradient(135deg, #6E48AA 0%, #9D50BB 100%);
+            color: white;
+            padding: 2rem 0;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 2rem;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: none;
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-weight: 600;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .sentiment-pill {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .sentiment-positive {
+            background-color: rgba(25, 135, 84, 0.1);
+            color: #198754;
+        }
+        .sentiment-negative {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+        .sentiment-neutral {
+            background-color: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #5A67D8 0%, #3C366B 100%);
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 500;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #4C51BF 0%, #2A2851 100%);
+        }
+        .post-card {
+            border-left: 5px solid;
+            transition: transform 0.2s;
+        }
+        .post-card:hover {
+            transform: translateY(-3px);
+        }
+        .post-positive {
+            border-left-color: #198754;
+        }
+        .post-negative {
+            border-left-color: #dc3545;
+        }
+        .stat-card {
+            border-radius: 15px;
+            padding: 1.5rem;
+            color: white;
+            height: 100%;
+        }
+        .stat-positive {
+            background: linear-gradient(135deg, #20BF55 0%, #01BAEF 100%);
+        }
+        .stat-neutral {
+            background: linear-gradient(135deg, #4B7BEC 0%, #3867D6 100%);
+        }
+        .stat-negative {
+            background: linear-gradient(135deg, #EB3B5A 0%, #FD9644 100%);
+        }
+        .tab-content {
+            padding: 1.5rem;
+        }
+        .nav-tabs .nav-link {
+            border: none;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            border-bottom: 3px solid #5A67D8;
+            color: #5A67D8;
+            font-weight: 600;
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-0">{{ company_name }}</h1>
+                    <p class="lead mb-0">Sentiment Analysis Report</p>
+                </div>
+                <div>
+                    <button onclick="window.location.href='/'" class="btn btn-outline-light me-2">
+                        <i class="bi bi-house-fill"></i> Home
+                    </button>
+                    <button onclick="exportReport()" class="btn btn-light">
+                        <i class="bi bi-download"></i> Export Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 stat-card stat-positive">
+                    <div class="card-body text-center">
+                        <h2 class="display-4 fw-bold">{{ sentiments.positive }}</h2>
+                        <p class="mb-0">Positive Posts</p>
+                        <h5>{{ (sentiments.positive / post_count * 100)|round(1) }}%</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 stat-card stat-neutral">
+                    <div class="card-body text-center">
+                        <h2 class="display-4 fw-bold">{{ sentiments.neutral }}</h2>
+                        <p class="mb-0">Neutral Posts</p>
+                        <h5>{{ (sentiments.neutral / post_count * 100)|round(1) }}%</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 stat-card stat-negative">
+                    <div class="card-body text-center">
+                        <h2 class="display-4 fw-bold">{{ sentiments.negative }}</h2>
+                        <p class="mb-0">Negative Posts</p>
+                        <h5>{{ (sentiments.negative / post_count * 100)|round(1) }}%</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 mt-3">
+                <div class="card">
+                    <div class="card-header">
+                        Analysis Overview
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Total Posts Analyzed:</strong> {{ post_count }}</p>
+                        <p><strong>Date Range:</strong> {{ date_range }}</p>
+                        <p><strong>Analysis Date:</strong> {{ now().strftime('%Y-%m-%d') }}</p>
+                        <p><strong>Data Source:</strong> {{ data_source }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        Sentiment Distribution
+                    </div>
+                    <div class="card-body">
+                        <canvas id="sentimentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        Sentiment Trend Over Time
+                    </div>
+                    <div class="card-body">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        Most Appreciated Features
+                    </div>
+                    <div class="card-body">
+                        <canvas id="featuresChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header">
+                        Most Common Issues
+                    </div>
+                    <div class="card-body">
+                        <canvas id="issuesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        Sample Posts
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="postTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="positive-tab" data-bs-toggle="tab" data-bs-target="#positive-posts" type="button" role="tab" aria-controls="positive-posts" aria-selected="true">
+                                    <i class="bi bi-emoji-smile"></i> Most Positive
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="negative-tab" data-bs-toggle="tab" data-bs-target="#negative-posts" type="button" role="tab" aria-controls="negative-posts" aria-selected="false">
+                                    <i class="bi bi-emoji-frown"></i> Most Negative
+                                </button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="postsTabContent">
+                            <div class="tab-pane fade show active" id="positive-posts" role="tabpanel" aria-labelledby="positive-tab">
+                                {% for post in sample_posts.positive %}
+                                <div class="card mb-3 post-card post-positive">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <h5 class="card-title">{{ post.author }}</h5>
+                                            <span class="sentiment-pill sentiment-positive">Score: {{ post.compound_score|round(2) }}</span>
+                                        </div>
+                                        <h6 class="card-subtitle mb-2 text-muted">{{ post.date }}</h6>
+                                        <p class="card-text">{{ post.text }}</p>
+                                        <a href="{{ post.url }}" class="card-link" target="_blank">View on LinkedIn</a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="tab-pane fade" id="negative-posts" role="tabpanel" aria-labelledby="negative-tab">
+                                {% for post in sample_posts.negative %}
+                                <div class="card mb-3 post-card post-negative">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <h5 class="card-title">{{ post.author }}</h5>
+                                            <span class="sentiment-pill sentiment-negative">Score: {{ post.compound_score|round(2) }}</span>
+                                        </div>
+                                        <h6 class="card-subtitle mb-2 text-muted">{{ post.date }}</h6>
+                                        <p class="card-text">{{ post.text }}</p>
+                                        <a href="{{ post.url }}" class="card-link" target="_blank">View on LinkedIn</a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        Priority Areas for Improvement
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion" id="priorityAreas">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="customerServiceHeading">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#customerServiceCollapse" aria-expanded="true" aria-controls="customerServiceCollapse">
+                                        <i class="bi bi-headset me-2"></i> Customer Service Enhancement
+                                    </button>
+                                </h2>
+                                <div id="customerServiceCollapse" class="accordion-collapse collapse show" aria-labelledby="customerServiceHeading">
+                                    <div class="accordion-body">
+                                        <ul>
+                                            <li>Implement 24/7 customer support or at least extended hours</li>
+                                            <li>Improve response time to under 24 hours for all queries</li>
+                                            <li>Better train support staff on common technical issues</li>
+                                            <li>Add more support channels like WhatsApp or in-app chat</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="appStabilityHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#appStabilityCollapse" aria-expanded="false" aria-controls="appStabilityCollapse">
+                                        <i class="bi bi-phone me-2"></i> Technical Reliability
+                                    </button>
+                                </h2>
+                                <div id="appStabilityCollapse" class="accordion-collapse collapse" aria-labelledby="appStabilityHeading">
+                                    <div class="accordion-body">
+                                        <ul>
+                                            <li>Comprehensive quality assurance before app updates</li>
+                                            <li>Reduce app crashes through improved error handling</li>
+                                            <li>Simplify the user interface in areas causing confusion</li>
+                                            <li>Implement better offline functionality for basic features</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="transactionHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#transactionCollapse" aria-expanded="false" aria-controls="transactionCollapse">
+                                        <i class="bi bi-credit-card me-2"></i> Transaction System Overhaul
+                                    </button>
+                                </h2>
+                                <div id="transactionCollapse" class="accordion-collapse collapse" aria-labelledby="transactionHeading">
+                                    <div class="accordion-body">
+                                        <ul>
+                                            <li>Audit and fix the transaction processing pipeline</li>
+                                            <li>Provide clearer error messages for failed transactions</li>
+                                            <li>Implement real-time transaction status updates</li>
+                                            <li>Create a simplified dispute resolution process</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Report in Hidden Div for Export -->
+        <div id="fullReport" style="display: none;">{{ report }}</div>
+
+        <footer class="text-center text-muted mb-4">
+            <p>© 2025 LinkedIn Sentiment Analysis Tool</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Parse chart data
+        const chartData = JSON.parse('{{ chart_data|safe }}');
+        
+        // Sentiment Distribution Chart
+        const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+        const sentimentChart = new Chart(sentimentCtx, {
+            type: 'pie',
+            data: {
+                labels: chartData.sentiment_distribution.labels,
+                datasets: [{
+                    data: chartData.sentiment_distribution.values,
+                    backgroundColor: [
+                        'rgba(25, 135, 84, 0.7)',
+                        'rgba(108, 117, 125, 0.7)',
+                        'rgba(220, 53, 69, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(25, 135, 84, 1)',
+                        'rgba(108, 117, 125, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Sentiment Trend Chart
+        if (chartData.sentiment_trend && chartData.sentiment_trend.labels.length > 0) {
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            const trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: chartData.sentiment_trend.labels,
+                    datasets: [
+                        {
+                            label: 'Positive',
+                            data: chartData.sentiment_trend.positive,
+                            borderColor: 'rgba(25, 135, 84, 1)',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Neutral',
+                            data: chartData.sentiment_trend.neutral,
+                            borderColor: 'rgba(108, 117, 125, 1)',
+                            backgroundColor: 'rgba(108, 117, 125, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Negative',
+                            data: chartData.sentiment_trend.negative,
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Posts'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Features Chart
+        if (chartData.top_features && chartData.top_features.labels.length > 0) {
+            const featuresCtx = document.getElementById('featuresChart').getContext('2d');
+            const featuresChart = new Chart(featuresCtx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.top_features.labels,
+                    datasets: [{
+                        label: 'Mentions',
+                        data: chartData.top_features.values,
+                        backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                        borderColor: 'rgba(25, 135, 84, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Mentions'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Issues Chart
+        if (chartData.top_issues && chartData.top_issues.labels.length > 0) {
+            const issuesCtx = document.getElementById('issuesChart').getContext('2d');
+            const issuesChart = new Chart(issuesCtx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.top_issues.labels,
+                    datasets: [{
+                        label: 'Mentions',
+                        data: chartData.top_issues.values,
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Mentions'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Export report function
+        function exportReport() {
+            const reportText = document.getElementById('fullReport').textContent;
+            
+            fetch('/export_report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'report': reportText,
+                    'company_name': '{{ company_name }}'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Report saved to ${data.filename}`);
+                } else {
+                    alert('Failed to export report');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while exporting the report');
+            });
+        }
+    </script>
+</body>
+</html> 
