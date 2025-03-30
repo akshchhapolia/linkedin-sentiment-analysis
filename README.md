@@ -2,7 +2,38 @@
 
 **GitHub Repository**: [https://github.com/akshchhapolia/linkedin-sentiment-analysis](https://github.com/akshchhapolia/linkedin-sentiment-analysis)
 
+**Local Demo**: [http://127.0.0.1:5006/](http://127.0.0.1:5006/) (Available when running locally)
+
 A web application that analyzes sentiment from LinkedIn posts for any company, generating comprehensive reports with industry-specific insights.
+
+## Hosting Options
+
+This application can be deployed to various cloud platforms:
+
+1. **Heroku** - Easy deployment with Git integration
+   ```bash
+   # Install Heroku CLI
+   # Login and create app
+   heroku login
+   heroku create linkedin-sentiment-app
+   git push heroku main
+   ```
+
+2. **Railway** - Simple deployment with GitHub integration
+   - Connect your GitHub repository
+   - Set Python as the runtime
+   - Add environment variables if needed
+
+3. **Render** - Free tier available for web services
+   - Create a new Web Service
+   - Connect to your GitHub repository
+   - Set build command: `pip install -r requirements.txt`
+   - Set start command: `python linkedin_sentiment_ui.py`
+
+4. **PythonAnywhere** - Specialized Python hosting
+   - Upload your files or clone from GitHub
+   - Set up a web app with Flask
+   - Configure WSGI file to point to your application
 
 ## Features
 

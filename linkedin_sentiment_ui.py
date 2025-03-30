@@ -478,9 +478,12 @@ def export_report():
     
     return jsonify({'success': True, 'filename': report_filename})
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Create templates directory if it doesn't exist
-    if not os.path.exists('templates'):
-        os.makedirs('templates')
+    os.makedirs('templates', exist_ok=True)
     
-    app.run(debug=True, port=5006) 
+    # Get port from environment variable or use default
+    port = int(os.environ.get("PORT", 5006))
+    
+    # Run the app
+    app.run(debug=True, host='0.0.0.0', port=port) 
